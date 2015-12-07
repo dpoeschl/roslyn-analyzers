@@ -11,7 +11,7 @@ namespace System.Runtime.Analyzers
     /// <summary>
     /// CA2242: Test for NaN correctly
     /// </summary>
-    [DiagnosticAnalyzer(LanguageNames.CSharp)]
+    // [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public sealed class CSharpTestForNaNCorrectlyAnalyzer : TestForNaNCorrectlyAnalyzer
     {
 

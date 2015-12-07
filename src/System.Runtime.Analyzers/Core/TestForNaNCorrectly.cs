@@ -4,13 +4,15 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Analyzer.Utilities;
+using Microsoft.CodeAnalysis.Semantics;
 
 namespace System.Runtime.Analyzers
-{                   
+{
     /// <summary>
     /// CA2242: Test for NaN correctly
     /// </summary>
-    public abstract class TestForNaNCorrectlyAnalyzer : DiagnosticAnalyzer
+    [DiagnosticAnalyzer(LanguageNames.CSharp, LanguageNames.VisualBasic)]
+    public class TestForNaNCorrectlyAnalyzer : DiagnosticAnalyzer
     {
         internal const string RuleId = "CA2242";
 
@@ -24,7 +26,7 @@ namespace System.Runtime.Analyzers
                                                                              s_localizableMessage,
                                                                              DiagnosticCategory.Usage,
                                                                              DiagnosticSeverity.Warning,
-                                                                             isEnabledByDefault: false,
+                                                                             isEnabledByDefault: true,
                                                                              description: s_localizableDescription,
                                                                              helpLinkUri: null,     // TODO: add MSDN url
                                                                              customTags: WellKnownDiagnosticTags.Telemetry);
@@ -32,8 +34,40 @@ namespace System.Runtime.Analyzers
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
         public override void Initialize(AnalysisContext analysisContext)
-        { 
-            
+        {
+            analysisContext.RegisterSymbolAction(
+                context => { int x = 7; }, SymbolKind.NamedType); // BP Hit
+
+            analysisContext.RegisterOperationAction(
+                context => { int y = 5; }, OperationKind.LiteralExpression); // BP Not hit
+
+
+            analysisContext.RegisterOperationBlockStartAction(
+                context => { var t = 4; }); // BP Hit
+
+            analysisContext.RegisterCompilationStartAction(
+                context =>
+                {
+                    analysisContext.RegisterOperationAction( // BP Hit
+                        context2 =>
+                        {
+                            var binOp = context2.Operation as IBinaryOperatorExpression; // BP Not hit
+                            if (binOp.BinaryKind == BinaryOperationKind.FloatingEquals)
+                            {
+                            }
+                        },
+                        OperationKind.BinaryOperatorExpression);
+                });
+
+            analysisContext.RegisterOperationAction(
+                context =>
+                {
+                    var binOp = context.Operation as IBinaryOperatorExpression;  // BP Not hit
+                    if (binOp.BinaryKind == BinaryOperationKind.FloatingEquals)
+                    {
+                    }
+                },
+                OperationKind.BinaryOperatorExpression);
         }
     }
 }
